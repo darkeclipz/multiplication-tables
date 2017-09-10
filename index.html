@@ -46,6 +46,10 @@
                                 <td>Midpoint (<span id="midpointValue"></span>)</td>
                                 <td><input type="checkbox" id="inputMidpoint"/> Enable</td>
                             </tr>
+                            <tr>
+                                <td>Flip vertical (<span id="flipValue"></span>)</td>
+                                <td><input type="checkbox" checked id="inputFlip"/> Enable</td>
+                            </tr>
                         </tbody>
                     </table>
                     <h3>Presets</h3>
@@ -70,6 +74,14 @@
     </body>
     <script>
         
+        /*
+            Todo:
+                - Allow the use of real numbers instead of natural numbers.
+                - Changing color with color pallettes and changing the color strength based on the
+                  distance. (d=sqrt[(x2-x1)^2+(y2-y1)^2])
+                - Animate by sliding through the coefficient (requires real number support)
+        */
+
         // Global parameters
         width = 500;
         height = 500;
@@ -81,6 +93,7 @@
         midpoint = true;
         numberOfPoints = 10;
         coefficient = 2;
+        flip = true;
         console.log('width: ' + width + ', height: ' + height + ', midX: ' + midX + ', midY: ' + midY + ', maxWidth: ' + maxWidth + ', maxHeight: ' + maxHeight);
 
         // Draw all the points and connect the lines.
@@ -123,7 +136,7 @@
             var points = [];
             var adjustedScale = (maxWidth > maxHeight ? maxHeight : maxWidth) * scale / 2;
             for(var i=0; i < n; i++) {
-                theta = i * 2 * Math.PI / n + Math.PI;
+                theta = i * 2 * Math.PI / n + (Math.PI * (flip ? 1 : 0));
                 x = Math.cos(theta) * adjustedScale + midX;
                 y = Math.sin(theta) * adjustedScale + midY;
                 points[i] = [x, y];
@@ -136,10 +149,14 @@
             inputPoints = $("#points");
             inputScale = $("#scale");
             inputMidpoint = $("#inputMidpoint");
+            inputFlip = $("#inputFlip");
 
             inputMidpoint.change(function () {
                 onChange('midpoint');
-            })
+            });
+            inputFlip.change(function() {
+                onChange('flip');
+            });
 
             $("#pointsSlider").slider({min:0,max:150,value:10,step:1,slide: function(event,ui){onChange('points')}});
             $("#scaleSlider").slider({min:0.01,max:1,value:0.9,step:0.01,slide: function(event,ui){onChange('scale')}});
@@ -153,11 +170,13 @@
             coefficient = $("#coefSlider").slider("option", "value");
             scaleValue = $("#scaleSlider").slider("option", "value");
             midpoint = $("#inputMidpoint").prop('checked');
+            flip = $("#inputFlip").prop('checked');
             scale = scaleValue;
             numberOfPoints = $("#pointsSlider").slider("option", "value");
             $("#scaleValue").html(scale);
             $("#pointsValue").html(numberOfPoints);
             $("#midpointValue").html(midpoint ? 'on' : 'off');
+            $("#flipValue").html(flip ? 'yes' : 'no');
             $("#coefValue").html(coefficient);
             console.log('On change from ' + e);
             pointsList = calculatePoints(numberOfPoints);
