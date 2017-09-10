@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Multiplication tables</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+        <script  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="  crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+    </head>
+    <style>.hoverable { cursor: pointer; }</style>
+    <body>
+        <div class="container">
+            
+            <div class="header clearfix">
+                <h3 class="text-muted">Visualization of the multiplication tables</h3>
+            </div>
+
+            <div class="jumbotron text-center">
+                <canvas id="output" width="500" height="500"></canvas>
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    <h3>Parameters</h3>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <td style="width:30%">Name</td>
+                                <td>Value</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Coefficient (<span id="coefValue"></span>)</td>
+                                <td><div id="coefSlider"></div>
+                            </tr>
+                            <tr>
+                                <td>Points (<span id="pointsValue"></span>)</td>
+                                <td><div id="pointsSlider"></div>
+                            </tr>
+                            <tr>
+                                <td>Scaling (<span id="scaleValue"></span>)</td>
+                                <td><div id="scaleSlider"></div>
+                            </tr>
+                            <tr>
+                                <td>Midpoint (<span id="midpointValue"></span>)</td>
+                                <td><input type="checkbox" id="inputMidpoint"/> Enable</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h3>Presets</h3>
+                    <div id="presets">
+                        Loading presets...
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h3>f(x)</h3>
+                    <div id="mappings">
+                        Loading mappings...
+                    </div>
+                </div>
+                
+            </div>
+
+            <footer class="footer">
+                <hr/>
+                <p>&copy; 2017 Lars Rotgers</p>
+            </footer>
+        </div>
+    </body>
+    <script>
+        
+        // Global parameters
+        width = 500;
+        height = 500;
+        midX = width / 2;
+        midY = height / 2;
+        maxWidth = width > height ? height : width;
+        maxHeight = height > width ? width : height;
+        scale = 0.9;
+        midpoint = true;
+        numberOfPoints = 10;
+        coefficient = 2;
+        console.log('width: ' + width + ', height: ' + height + ', midX: ' + midX + ', midY: ' + midY + ', maxWidth: ' + maxWidth + ', maxHeight: ' + maxHeight);
+
+        // Draw all the points and connect the lines.
+        function draw(points) {
+            var canvas = document.getElementById('output');
+            if(canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // If enabled, draw a points in the center.
+                if(midpoint) {
+                    var circle = new Path2D();
+                    circle.arc(midX, midY, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'lightgray';
+                    ctx.fill(circle);
+                }
+
+                // Draw the points.
+                ctx.fillStyle = 'lightgray';
+                for(var i=0; i < points.length; i++) {
+                    var circle = new Path2D();
+                    circle.arc(points[i][0], points[i][1], 5, 0, 2 * Math.PI);
+                    ctx.fill(circle);
+                }
+
+                // Connect all the points
+                ctx.strokeStyle = 'gray';
+                for(var i=0; i < numberOfPoints; i++) {
+                    ax = coefficient * i;
+                    ctx.beginPath();
+                    ctx.moveTo(points[i][0], points[i][1]);
+                    ctx.lineTo(points[ax%numberOfPoints][0],points[ax%numberOfPoints][1]);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Calculate the coordinates of all the points.
+        function calculatePoints(n) {
+            var points = [];
+            var adjustedScale = (maxWidth > maxHeight ? maxHeight : maxWidth) * scale / 2;
+            for(var i=0; i < n; i++) {
+                theta = i * 2 * Math.PI / n + Math.PI;
+                x = Math.cos(theta) * adjustedScale + midX;
+                y = Math.sin(theta) * adjustedScale + midY;
+                points[i] = [x, y];
+            }
+            return points;
+        }
+
+        // Initialize the document (sliders/presets/draw)
+        $(document).ready(function (){
+            inputPoints = $("#points");
+            inputScale = $("#scale");
+            inputMidpoint = $("#inputMidpoint");
+
+            inputMidpoint.change(function () {
+                onChange('midpoint');
+            })
+
+            $("#pointsSlider").slider({min:0,max:150,value:10,step:1,slide: function(event,ui){onChange('points')}});
+            $("#scaleSlider").slider({min:0.01,max:1,value:0.9,step:0.01,slide: function(event,ui){onChange('scale')}});
+            $("#coefSlider").slider({min:1,max:50,value:2,step:1,slide: function(event,ui){onChange('coef')}});
+            onChange('init');
+            loadPresets();
+        });
+
+        // Update the drawing when a parameter is updated.
+        function onChange(e) {
+            coefficient = $("#coefSlider").slider("option", "value");
+            scaleValue = $("#scaleSlider").slider("option", "value");
+            midpoint = $("#inputMidpoint").prop('checked');
+            scale = scaleValue;
+            numberOfPoints = $("#pointsSlider").slider("option", "value");
+            $("#scaleValue").html(scale);
+            $("#pointsValue").html(numberOfPoints);
+            $("#midpointValue").html(midpoint ? 'on' : 'off');
+            $("#coefValue").html(coefficient);
+            console.log('On change from ' + e);
+            pointsList = calculatePoints(numberOfPoints);
+            draw(pointsList);
+            listMappings(pointsList);
+        }
+
+        // Switch to a predefined preset.
+        function preset(c,p) {
+            $("#coefSlider").slider("value", c);
+            $("#pointsSlider").slider("value", p);
+            onChange('preset');
+        }
+
+        // List all the function mappings.
+        function listMappings(points) {
+            $("#mappings").html('');
+            if(!points.length) {
+                $("#mappings").html('No points');
+                return;
+            }
+            for(var i=0; i < points.length; i++) {
+                $("#mappings").append(' <span class="badge badge-primary">' + i + ' ↦ ' + round(coefficient*i,3) + '<span> ');
+            }
+        }
+
+        // Normal round function instead of JavaScript retardedness.
+        function round(a,b) {
+            return Math.round(a*10**b)/10**b;
+        }
+
+        // Load all the presets.
+        function loadPresets() {
+            presets = [[2, 100], [50, 102], [34,99], [46,141], [15,70], [15,64], [50,25], [50,98]];
+            $("#presets").html('');
+            for(var i=0; i< presets.length;i++) {
+                $("#presets").append('<span class="badge hoverable" onclick="preset('+presets[i][0]+','+presets[i][1]+')">'+presets[i][0]+', '+presets[i][1]+'</span> ');
+            }
+        }
+    </script>
+</html>
