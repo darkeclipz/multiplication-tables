@@ -103,7 +103,7 @@
                 var ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // If enabled, draw a points in the center.
+                // If enabled, draw a point in the center.
                 if(midpoint) {
                     var circle = new Path2D();
                     circle.arc(midX, midY, 5, 0, 2 * Math.PI);
@@ -158,9 +158,9 @@
                 onChange('flip');
             });
 
-            $("#pointsSlider").slider({min:0,max:150,value:10,step:1,slide: function(event,ui){onChange('points')}});
-            $("#scaleSlider").slider({min:0.01,max:1,value:0.9,step:0.01,slide: function(event,ui){onChange('scale')}});
-            $("#coefSlider").slider({min:1,max:50,value:2,step:1,slide: function(event,ui){onChange('coef')}});
+            $("#pointsSlider").slider({min:0,max:150,value:10,step:1,slide: function(event,ui){onChange('points')},change: function(event,ui){onChange('points')}});
+            $("#scaleSlider").slider({min:0.01,max:1,value:0.9,step:0.01,slide: function(event,ui){onChange('scale')},change: function(event,ui){onChange('points')}});
+            $("#coefSlider").slider({min:1,max:50,value:2,step:1,slide: function(event,ui){onChange('coef')},change: function(event,ui){onChange('points')}});
             onChange('init');
             loadPresets();
         });
