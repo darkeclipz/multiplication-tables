@@ -43,6 +43,14 @@
                                 <td><div id="scaleSlider"></div>
                             </tr>
                             <tr>
+                                <td>Animation speed (<span id="animSpeedValue"></span>)</td>
+                                <td><div id="animSpeedSlider"></div>
+                            </tr>
+                            <tr>
+                                <td>Animate (<span id="animateValue"></span>)</td>
+                                <td><input type="checkbox" id="inputAnimate"/> Enable</td>
+                            </tr>
+                            <tr>
                                 <td>Midpoint (<span id="midpointValue"></span>)</td>
                                 <td><input type="checkbox" id="inputMidpoint"/> Enable</td>
                             </tr>
@@ -94,7 +102,11 @@
         numberOfPoints = 10;
         coefficient = 2;
         flip = true;
+        animate = false;
+        animationSpeed = 0.05;
+        animating = false;
         console.log('width: ' + width + ', height: ' + height + ', midX: ' + midX + ', midY: ' + midY + ', maxWidth: ' + maxWidth + ', maxHeight: ' + maxHeight);
+        
 
         // Draw all the points and connect the lines.
         function draw(points) {
@@ -122,10 +134,28 @@
                 // Connect all the points
                 ctx.strokeStyle = 'gray';
                 for(var i=0; i < numberOfPoints; i++) {
+
+                    // Find the index of the resulting point.
                     ax = coefficient * i;
+                    index = Math.floor(ax % numberOfPoints);
+
+                    // Calculate the distance between to two points so we can give the color a different hue
+                    // based on the length of the color.
+                    x1 = points[i][0];
+                    x2 = points[index][0];
+                    y1 = points[i][1];
+                    y2 = points[index][1];
+                    distance = Math.sqrt((x2**2 - x1**2) + (y2**2 - y1**2));
+                    color = distance / 2;
+                    if(isNaN(color)) {
+                        color = 0;
+                    }
+                    
+                    // Draw the line.
                     ctx.beginPath();
+                    ctx.strokeStyle = 'rgb('+Math.round(distance/2)+',0,0)';
                     ctx.moveTo(points[i][0], points[i][1]);
-                    ctx.lineTo(points[ax%numberOfPoints][0],points[ax%numberOfPoints][1]);
+                    ctx.lineTo(points[index][0],points[index][1]);
                     ctx.stroke();
                 }
             }
@@ -150,6 +180,7 @@
             inputScale = $("#scale");
             inputMidpoint = $("#inputMidpoint");
             inputFlip = $("#inputFlip");
+            inputAnimate = $("#inputAnimate");
 
             inputMidpoint.change(function () {
                 onChange('midpoint');
@@ -157,10 +188,14 @@
             inputFlip.change(function() {
                 onChange('flip');
             });
+            inputAnimate.change(function() {
+                onChange('animate');
+            })
 
-            $("#pointsSlider").slider({min:0,max:150,value:10,step:1,slide: function(event,ui){onChange('points')},change: function(event,ui){onChange('points')}});
+            $("#pointsSlider").slider({min:0,max:150,value:10,step:0.01,slide: function(event,ui){onChange('points')},change: function(event,ui){onChange('points')}});
             $("#scaleSlider").slider({min:0.01,max:1,value:0.9,step:0.01,slide: function(event,ui){onChange('scale')},change: function(event,ui){onChange('points')}});
             $("#coefSlider").slider({min:1,max:50,value:2,step:1,slide: function(event,ui){onChange('coef')},change: function(event,ui){onChange('points')}});
+            $("#animSpeedSlider").slider({min:0.01,max:1,value:0.02,step:0.01,slide:function(event,ui){onChange('animSpeed')},change:function(event,ui){onChange('animSpeed')}});
             onChange('init');
             loadPresets();
         });
@@ -173,15 +208,36 @@
             flip = $("#inputFlip").prop('checked');
             scale = scaleValue;
             numberOfPoints = $("#pointsSlider").slider("option", "value");
+            animate = $("#inputAnimate").prop('checked');
+            animationSpeed = $("#animSpeedSlider").slider("option", "value");
             $("#scaleValue").html(scale);
             $("#pointsValue").html(numberOfPoints);
             $("#midpointValue").html(midpoint ? 'on' : 'off');
             $("#flipValue").html(flip ? 'yes' : 'no');
             $("#coefValue").html(coefficient);
+            $("#animSpeedValue").html(animationSpeed);
+            $("#animateValue").html(animate ? 'yes' : 'no');
             console.log('On change from ' + e);
             pointsList = calculatePoints(numberOfPoints);
             draw(pointsList);
             listMappings(pointsList);
+            if(animate && !animating) {
+                animating = true;
+                animationCallback();
+            }
+        }
+
+        function animationCallback() {
+            if(!animate)
+                {
+                    animating = false;
+                    return;
+                }
+                else {
+                    $("#pointsSlider").slider("value", numberOfPoints + animationSpeed);
+                    onChange('animate');
+                    setTimeout(animationCallback, 10);
+                }
         }
 
         // Switch to a predefined preset.
